@@ -48,15 +48,13 @@ describe('Painel de Controle de Suítes — fluxo completo (Check-in + Pedido)',
 
         // Quant. De Pessoas
         cy.get('input[name="acompanhantes"]')
-        .should('be.visible')
-        .should('be.enabled')
+        .should('be.visible','be.enabled')
         .clear()
         .type('4');
 
         // Condução
         cy.get('input.w-48').eq(1) // O segundo input.w-48 é o de Condução
-        .should('be.visible')
-        .should('be.enabled')
+        .should('be.visible','be.enabled')
         .clear()
         .type('3')
         .should('have.value', '3-App');
@@ -77,6 +75,16 @@ describe('Painel de Controle de Suítes — fluxo completo (Check-in + Pedido)',
         //Setando com letra minuscula para o codigo retorar formatado
         .type('abc5-543')
         .should('have.value', 'ABC5-543');
+
+        // Alternativa: seleciona o input dentro do label com classe cursor-pointer
+        cy.get('label.cursor-pointer input[type="file"]').selectFile('cypress/fixtures/placa.jpg', { force: true });
+        // Confirma que a foto foi carregada verificando se o input possui arquivos
+        cy.get('label.cursor-pointer input[type="file"]')
+          .should('have.prop', 'files')
+          .then(files => {
+            expect(files).to.have.length.greaterThan(0);
+            expect(files[0].name).to.equal('placa.jpg');
+          });
 
         // Clica no botão de check-in
         cy.get('.bg-green-600 > .items-center > :nth-child(2)').click();
