@@ -209,32 +209,31 @@ describe('Painel de Controle de Suítes', () => {
               cy.log('Botões encontrados:', textos.join(' | '));
             });
             
-            // checar botões importantes (exemplos do HTML que você enviou)
+            // checar botões importantes do modal
             cy.contains('button', 'Adicionar Pedido').should('be.visible').and('be.enabled');
             cy.contains('button', 'Imprimir').should('be.visible').and('be.enabled');
             cy.contains('button', 'Atualizar').should('be.visible').and('be.enabled');
 
-            // Clica no botão de Adicionar Pedido
-            cy.get('.bg-green-600 > .items-center > :nth-child(2)').click();
+            // cy.contains('button', /Adicionar Pedido/i).click();
+            cy.contains('button', /Adicionar Pedido/i).should('be.visible').click();
+            });
 
-            // Confirmação de pedido: se aparecer o modal estilizado "Confirmação", confirma clicando em OK
+            // 5) Espera o diálogo de confirmação e confirma usando data-testid (retryable)
             cy.get('body').then($body => {
-              if ($body.find('h3:contains("Confirmação")').length) {
-                // encontra o modal de confirmação e clica no OK (retryable)
-                cy.contains('h3', 'Confirmação').should('be.visible').parents('div').eq(1).as('confirmPedidoModal');
-
-                cy.get('@confirmPedidoModal').within(() => {
-                  // assegura que os botões existem e clica no OK
-                  cy.contains('button', 'Cancelar').should('be.visible').and('be.enabled');
-                  cy.contains('button', 'OK').should('be.visible').and('be.enabled').click();
+              if ($body.find('[data-testid="pedido-confirm-dialog"]').length) {
+                cy.get('[data-testid="pedido-confirm-dialog"]').should('be.visible').within(() => {
+                  cy.get('[data-testid="pedido-confirm-ok"]').should('be.visible').and('be.enabled').click();
+                });
+              } else {
+                // fallback: procurar por título "Confirmação" e clicar no OK
+                cy.contains('h3', 'Confirmação').should('be.visible').parents('div').eq(1).within(() => {
+                  cy.contains('button', 'OK').click();
                 });
               }
             });
-
           });
         });
-      });
-  });
+});
 
 
 
