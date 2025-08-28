@@ -45,6 +45,7 @@ describe('Painel de Controle de Suítes', () => {
           const suiteModalNumber = match ? match[1] : null;
           expect(suiteModalNumber).to.equal(suiteNumber);
           cy.log('Número da suíte no modal:', suiteModalNumber);
+          // Continua o fluxo: clica no botão de Check-in para abrir o formulário
           cy.get('.shadow-sm > .grid > .bg-green-500').should('be.visible').click();
         
         });
@@ -108,6 +109,26 @@ describe('Painel de Controle de Suítes', () => {
             });
 
         // 4. Conferir se a cor mudou e o status da suíte após o check-in
+          
+            // Se aparecer o modal de confirmação (padrão estilizado), valida e confirma
+            cy.get('body').then($body => {
+              if ($body.find('h3:contains("Confirmação")').length) {
+                cy.contains('h3', 'Confirmação').should('be.visible').parents('div').eq(1).as('confirmModal');
+
+                cy.get('@confirmModal').find('p').first().as('confirmModalP');
+                cy.get('@confirmModalP').invoke('text').then(texto => {
+                  cy.log('Texto da confirmação:', texto.trim());
+                  const m = texto.match(/suí?te\s*(\d+)/i);
+                  const suiteConfirm = m ? m[1] : null;
+                  cy.wrap(suiteConfirm).as('confirmSuite');
+                });
+
+                cy.get('@confirmModal').within(() => {
+                  cy.contains('button', 'Cancelar').should('be.visible').and('be.enabled');
+                  cy.contains('button', 'OK').should('be.visible').and('be.enabled').click();
+                });
+              }
+            });
             // Usa a variável `suiteNumber` já capturada acima. Faz assert retryable
             // para esperar até que a suíte mude de cor/estado.
         const suiteNumberTrim = suiteNumber.trim();
@@ -130,50 +151,91 @@ describe('Painel de Controle de Suítes', () => {
             .contains(suiteNumberTrim)
             .parents('.bg-green-500, .bg-red-500, .bg-yellow-500, .bg-blue-500')
             .first()
-            .click();
+            .as('suiteTile');
+          cy.get('@suiteTile').click();
+          // Verifica se o modal abriu e espera o modal de atendimento com o número da suíte
+          cy.contains('h3', `Atendimento - Suíte ${suiteNumberTrim}`)
+            .should('be.visible')
+            .parents('div.inline-block') // sobe até o container do modal
+            .then($parents => {
+              cy.wrap($parents.first()).as('atendimentoModal');
+            });
+
+          // Verifica e cria aliases simples para os botões principais (curto e retryable)
+          cy.get('@atendimentoModal').within(() => {
+            cy.contains('button', /Lançamento de Pedido|Abertura de Suíte \/ Check-in/i)
+              .should('be.visible').and('be.enabled').as('btnPedido');
+
+            cy.contains('button', 'Fechamento de Suíte / Check-out')
+              .should('be.visible').and('be.enabled').as('btnCheckout');
+
+            cy.contains('button', 'Troca de Suíte')
+              .should('be.visible').and('be.enabled').as('btnTroca');
+          });
+
+          // Clica no botão de Lançamento de Pedido
+          cy.get('@btnPedido').click();
+          // Verifica se o modal de pedido abriu
+          // espera o modal (role dialog) e trabalha dentro dele
+          cy.get('div[role="dialog"]').should('be.visible').then($dialogs => {
+            cy.wrap($dialogs.first()).as('pedidoDialog');
+          });
+          cy.get('@pedidoDialog').within(() => {
+            // título do modal
+            cy.get('h3').then($h3s => { cy.wrap($h3s.first()).as('pedidoTitulo'); });
+            cy.get('@pedidoTitulo').invoke('text').then((titulo) => {
+              const tituloTrim = titulo.trim();
+              cy.log('Título do modal:', tituloTrim);
+
+              // extrai o número da suíte do título (ex: "Pedido - Suíte 2001")
+              const match = tituloTrim.match(/Suíte\s*(\d+)/i);
+              const suiteNumberFromModal = match ? match[1] : null;
+              cy.log('Número da suíte extraído:', suiteNumberFromModal);
+
+              // opcional: comparar com variável existente
+              // if (typeof suiteNumberTrim !== 'undefined') {
+              //   expect(suiteNumberFromModal).to.equal(suiteNumberTrim);
+              // }
+            });
+            // Lançar um pedido
+            cy.get('.border-r > :nth-child(2) > .w-full').click().type('31{enter}');
+            // Verifica se o pedido foi adicionado na lista
+            cy.get('tbody > tr.border-b > td.py-3.hidden.sm\\:table-cell').should('contain', '31');
+            
+            
+            // listar textos dos botões do rodapé/área do modal
+            cy.get('button').then($btns => {
+              const textos = [...$btns].map(b => b.innerText.trim()).filter(Boolean);
+              cy.log('Botões encontrados:', textos.join(' | '));
+            });
+            
+            // checar botões importantes (exemplos do HTML que você enviou)
+            cy.contains('button', 'Adicionar Pedido').should('be.visible').and('be.enabled');
+            cy.contains('button', 'Imprimir').should('be.visible').and('be.enabled');
+            cy.contains('button', 'Atualizar').should('be.visible').and('be.enabled');
+
+            // Clica no botão de Adicionar Pedido
+            cy.get('.bg-green-600 > .items-center > :nth-child(2)').click();
+
+            // Confirmação de pedido: se aparecer o modal estilizado "Confirmação", confirma clicando em OK
+            cy.get('body').then($body => {
+              if ($body.find('h3:contains("Confirmação")').length) {
+                // encontra o modal de confirmação e clica no OK (retryable)
+                cy.contains('h3', 'Confirmação').should('be.visible').parents('div').eq(1).as('confirmPedidoModal');
+
+                cy.get('@confirmPedidoModal').within(() => {
+                  // assegura que os botões existem e clica no OK
+                  cy.contains('button', 'Cancelar').should('be.visible').and('be.enabled');
+                  cy.contains('button', 'OK').should('be.visible').and('be.enabled').click();
+                });
+              }
+            });
+
+          });
+        });
       });
-    });
-});
+  });
 
-  // it('Seleciona uma suíte livre', () => {
-  //   // Simula clique para abrir o modal de check-in
-  //   cy.contains('Suíte');
-  //   // Seleciona a primeira suíte livre
-  //   cy.get('.bg-green-500.rounded-lg.cursor-pointer').first().click();
-  //   // Abre o modal de check-in
-  //   cy.contains('Check-in');
-  //   cy.get('.bg-green-500 > .flex').should('be.visible').click();
-
-  //   // Extrai o número da suíte do modal
-  //   cy.get('.bg-green-500 > .flex > div > .text-lg')
-  //     .should('be.visible')
-  //     .invoke('text')
-  //     .then((suiteText) => {
-  //       const match = suiteText.match(/Suíte\s*(\d+)/i);
-  //       const suiteNumber = match ? match[1] : null;
-  //       cy.log('Suite selecionada para o teste:', suiteNumber);
-  //       Cypress.env('suiteNumber', suiteNumber); // Salva para uso em outros testes
-  //     });
-  // });
-
-  // it('Recebe o numero de uma suite (suiteNumber) e retorna status', () => {
-  //   const suiteNumber = Cypress.env('suiteNumber');
-  //   cy.log('Suite buscada:', suiteNumber);
-  //   // Busca o elemento da suíte pelo número
-  //   cy.get('h3.text-2xl.font-bold')
-  //     .contains(suiteNumber)
-  //     .should('exist')
-  //     .should('be.visible')
-  //     .parents('.bg-green-500, .bg-red-500, .bg-yellow-500, .bg-blue-500')
-  //     .then(($suite) => {
-  //     // Obtém a cor (classe CSS)
-  //     const cor = $suite.attr('class');
-  //     cy.log('Classe/cor da suíte:', cor);
-  //     const status = statusDaSuite(cor);
-  //     cy.log('Status da suíte:', status);
-  //     console.log('Status da suíte:', status);
-  //     });
-  // });
 
 
 //   it('abre e fecha o CheckoutModal', () => {
