@@ -3,25 +3,30 @@
 Este repositório contém a estrutura de testes end-to-end do sistema motel-app utilizando Cypress.
 
 ## Estrutura
+
 - `cypress/e2e/`: testes automatizados (ex: modals.cy.js)
 - `cypress/support/`: comandos customizados e configurações globais
 - `cypress/component/`: testes de componentes (opcional)
 - `README.md`: documentação dos testes
 - `package.json`: dependências e scripts
+
 # Testes E2E com Cypress — motel-app
 
 Este repositório contém casos de teste end-to-end para o motel-app usando Cypress. O foco aqui é tornar os testes determinísticos, legíveis e fáceis de manter.
 
 ## Visão rápida
+
 - Stack: Cypress (E2E + component), comandos customizados em `cypress/support`.
 - Testes principais: `cypress/e2e/*` (ex.: `modals.cy.js`).
 
 ## Estrutura relevante
+
 - `cypress/e2e/`: specs de E2E
 - `cypress/support/`: comandos customizados e helpers (ex.: `commands.js`)
 - `cypress/fixtures/`: dados mock para testes
 
 ## Pré-requisitos
+
 - Node.js (recomendado: versão LTS)
 - Dependências do projeto:
 
@@ -48,16 +53,37 @@ npx cypress run --spec "cypress/e2e/modals.cy.js"
 Substitua o `--spec` conforme o arquivo que deseja rodar.
 
 ## Scripts úteis
+
 - Abrir runner: `npx cypress open`
 - Rodar todos os specs headless: `npx cypress run`
 
+### Formatação automática
+
+Este repositório usa Prettier para manter o código consistente.
+
+- Rodar formatação e sobrescrever arquivos:
+
+```
+npm run format
+```
+
+- Verificar se arquivos estão formatados (útil em CI):
+
+```
+npm run format:check
+```
+
+Os parâmetros do Prettier estão em `.prettierrc`. Adicione um hook git (por exemplo com `husky`) se quiser formatar automaticamente antes do commit.
+
 ## Convenções e boas práticas
+
 - Preferir seletores `data-cy` para tornar testes robustos frente a mudanças de estilo/texto.
 - Mockar APIs com `cy.intercept()` para cenários determinísticos.
 - Controlar tempo com `cy.clock()`/`cy.tick()` quando validar timestamps.
 - Criar comandos reutilizáveis em `cypress/support/commands.js` para ações comuns (ex.: seed, login, fluxos).
 
 ## Seletor recomendados (exemplos a adicionar ao app)
+
 - `data-cy="btn-open-checkin"` — botão que abre modal de check-in
 - `data-cy="input-guest-name"` — campo nome do hóspede
 - `data-cy="input-document"` — campo documento
@@ -67,6 +93,7 @@ Substitua o `--spec` conforme o arquivo que deseja rodar.
 - `data-cy="room-status"` — status do quarto
 
 ## Fixtures sugeridas
+
 - `cypress/fixtures/rooms-available.json` — lista de quartos disponíveis
 - `cypress/fixtures/guest.json` — payload de hóspede
 
@@ -94,16 +121,19 @@ describe('Check-in flow', () => {
     cy.get('[data-cy=room-status]').should('contain', 'Ocupado');
 
     // valida appState na janela (se app expõe state para testes)
-    cy.window().its('appState').then((state: any) => {
-      const room = state.rooms.find((r: any) => r.number === 101);
-      expect(room).to.exist;
-      expect(room.checkInTime).to.be.a('string');
-    });
+    cy.window()
+      .its('appState')
+      .then((state: any) => {
+        const room = state.rooms.find((r: any) => r.number === 101);
+        expect(room).to.exist;
+        expect(room.checkInTime).to.be.a('string');
+      });
   });
 });
 ```
 
 ## Casos de borda importantes
+
 1. Submissão com campos vazios → validação UI
 2. Quarto já ocupado no momento do submit → conflito 409
 3. Falha de rede ao confirmar (500) → exibir erro e não marcar quarto como ocupado
@@ -111,6 +141,7 @@ describe('Check-in flow', () => {
 5. Persistência: reload mantém estado do check-in
 
 ## Próximos passos sugeridos
+
 1. Adicionar atributos `data-cy` nos componentes (ex.: `src/components/modals/*`, cards).
 2. Criar fixtures em `cypress/fixtures` conforme recomendado.
 3. Criar specs isolados (ex.: `checkin.spec.ts`, `pedido.spec.ts`) e comandos reutilizáveis.
