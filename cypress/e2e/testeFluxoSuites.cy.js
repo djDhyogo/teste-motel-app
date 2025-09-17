@@ -1,9 +1,13 @@
 // cypress/e2e/modals.cy.js
+/*
+  Objetivo: testar fluxos principais de modais do Painel de Suítes.
+  Pré-condições: usuário cadastrado; fixtures/placa.jpg disponível.
+  Observação: seletores originais mantidos — prefira data-cy no app.
+*/
 
-function realizarLogin() {
-  cy.login();
-}
-
+//
+// --- Helpers ---
+//
 function escolherSuiteAleatoria(corClasse) {
   return cy
     .get(`${corClasse} .text-2xl.font-bold`)
@@ -18,45 +22,39 @@ function escolherSuiteAleatoria(corClasse) {
     });
 }
 
-function abrirModalAtendimento() {
-  cy.get('@suiteNumber').then(suiteNumber => {
-    cy.contains('h3', `Suíte ${suiteNumber}`).should('be.visible');
-  });
-}
 
-function preencherFormularioCheckin() {
-  cy.get('input[name="acompanhantes"]').clear().type('4');
-  cy.get('input.w-48').eq(1).clear().type('3').should('have.value', '3-App');
-  cy.get('label:contains("Cor")').click().type('1');
-  cy.get('label:contains("Digite o Numero da Placa")')
-    .parent()
-    .find('input[type="text"]')
-    .clear()
-    .type('abc5-543')
-    .should('have.value', 'ABC5-543');
-
-  cy.get('label.cursor-pointer input[type="file"]').selectFile('cypress/fixtures/placa.jpg', { force: true });
-  cy.get('label.cursor-pointer input[type="file"]').should('have.prop', 'files').then(files => {
-    expect(files[0].name).to.equal('placa.jpg');
-  });
-}
-
-function confirmarCheckin() {
-  cy.get('.bg-green-600 > .items-center > :nth-child(2)').click();
-  cy.get('.rh-toast > .flex-1')
-    .should('be.visible')
-    .invoke('text')
-    .then(msg => {
-      expect(msg).to.contain('Check-in realizado');
-    });
-}
 
 function fazerCheckinSuiteLivre() {
   return escolherSuiteAleatoria('.bg-green-500').then(() => {
-    abrirModalAtendimento();
+    cy.get('@suiteNumber').then(suiteNumber => {
+      cy.contains('h3', `Suíte ${suiteNumber}`).should('be.visible');
+    });
+
     cy.contains('button', /Check-in|Abertura de Suíte/i).click();
-    preencherFormularioCheckin();
-    confirmarCheckin();
+
+    // Preenche formulário de check-in
+    cy.get('input[name="acompanhantes"]').clear().type('4');
+    cy.get('input.w-48').eq(1).clear().type('3').should('have.value', '3-App');
+    cy.get('label:contains("Cor")').click().type('1');
+    cy.get('label:contains("Digite o Numero da Placa")')
+      .parent()
+      .find('input[type="text"]')
+      .clear()
+      .type('abc5-543')
+      .should('have.value', 'ABC5-543');
+    cy.get('label.cursor-pointer input[type="file"]').selectFile('cypress/fixtures/placa.jpg', { force: true });
+    cy.get('label.cursor-pointer input[type="file"]').should('have.prop', 'files').then(files => {
+      expect(files[0].name).to.equal('placa.jpg');
+    });
+    cy.get('.bg-green-600 > .items-center > :nth-child(2)').click(); // Clique no botão Confirmar Check-in
+    // Submete formulário
+
+    cy.get('.rh-toast > .flex-1')
+      .should('be.visible')
+      .invoke('text')
+      .then(msg => {
+        expect(msg).to.contain('Check-in realizado');
+      });
   });
 }
 
@@ -65,16 +63,18 @@ function fazerCheckinSuiteLivre() {
 //
 describe('Painel de Controle de Suítes', () => {
   beforeEach(() => {
-    realizarLogin();
-    fazerCheckinSuiteLivre(); // sempre garante uma suíte ocupada
+    cy.login();
   });
 
-  it('faz check-in em uma suíte livre e confirma notificação', () => {
-    // fluxo já testado no beforeEach, mas rodamos novamente para validar
+  it('faz check-in em uma suíte livre', () => {
+    // Valida fluxo de check-in
     fazerCheckinSuiteLivre();
   });
 
   it('seleciona uma suíte ocupada e abre modal de pedido', () => {
+
+    fazerCheckinSuiteLivre();// Dando entrada em uma suíte para garantir que há uma ocupada
+
     escolherSuiteAleatoria('.bg-red-500').then(() => {
       cy.get('@suiteNumber').then(suiteNumber => {
         cy.contains('h3', `Atendimento - Suíte ${suiteNumber}`)
