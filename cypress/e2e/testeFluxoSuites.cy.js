@@ -25,6 +25,8 @@ function escolherSuiteAleatoria(corClasse) {
 
 
 function fazerCheckinSuiteLivre() {
+
+  // Faz check-in em uma suíte livre (Status: bg-green-500)
   return escolherSuiteAleatoria('.bg-green-500').then(() => {
     cy.get('@suiteNumber').then(suiteNumber => {
       cy.contains('h3', `Suíte ${suiteNumber}`).should('be.visible');
@@ -71,7 +73,7 @@ describe('Painel de Controle de Suítes', () => {
     fazerCheckinSuiteLivre();
   });
 
-  it('seleciona uma suíte ocupada e abre modal de pedido', () => {
+  it('seleciona uma suíte ocupada e lançar um pedido', () => {
 
     fazerCheckinSuiteLivre();// Dando entrada em uma suíte para garantir que há uma ocupada
 
@@ -114,4 +116,74 @@ describe('Painel de Controle de Suítes', () => {
       });
     });
   });
+
+
+  it.only('Seleciona uma suite livre e da entrada e faz checkout', () => {
+
+    fazerCheckinSuiteLivre();// Dando entrada em uma suíte para garantir que há uma ocupada
+
+    escolherSuiteAleatoria('.bg-red-500').then(() => {
+      cy.get('@suiteNumber').then(suiteNumber => {
+        cy.contains('h3', `Atendimento - Suíte ${suiteNumber}`)
+          .should('be.visible')
+          .parents('div.inline-block')
+          .first()
+          .as('atendimentoModal');
+
+        cy.get('@atendimentoModal').within(() => {
+          cy.contains('button', /Lançamento de Pedido/).as('btnPedido');
+          cy.contains('button', 'Fechamento de Suíte / Check-out').as('btnCheckout');
+          cy.contains('button', 'Troca de Suíte').as('btnTroca');
+        });
+        // Abre modal de checkout
+        cy.get('@btnCheckout').click();
+        // selecionar uma forma de pagamento
+        cy.contains('button', 'Adicionar').should('be.visible').click();
+
+        // Confere se abriu o modal de seleção de forma de pagamento
+        cy.get('div[role="dialog"]')
+          .should('be.visible')
+          .contains('h3', 'Selecione a forma de pagamento')
+          .should('exist');
+        // Confere se as opções estão visíveis
+          cy.contains('Formas de Pagamento');
+          cy.contains('1- Dinheiro');
+          cy.contains('2- PIX');
+          cy.contains('3- Débito');
+          cy.contains('4- Cartão');
+          cy.contains('5- Voucher');
+        // Seleciona a forma de pagamento "1- Dinheiro"
+        cy.contains('1- Dinheiro').click();
+
+        cy.contains('button', 'Finalizar Checkout (Enter)').should('be.visible');
+        cy.contains('button', 'Imprimir').should('be.visible');
+        cy.contains('button', 'Atualizar').should('be.visible');
+
+        // Clique no botão Finalizar Checkout ( Enter)
+        cy.get('.bg-green-600 > .items-center > :nth-child(2)').click(); 
+        cy.get('.fixed.z-50 > .bg-white')
+          .should('be.visible')
+          .contains('h3', 'Confirmação')
+          .should('exist');
+        cy.contains('button', 'OK').click();
+        // cy.press('esc'); // Fecha o modal de atendimento
+
+        // cy.window().then(win => {
+        //   // Se possível, stub window.print para evitar que a nova aba seja aberta
+        //   cy.stub(win, 'print').as('windowPrint');
+        //   cy.wrap(win).as('window');
+        //   cy.go('back'); // Volta para a página anterior
+        // });
+
+
+        // cy.contains('.bg-green-500 .text-2xl.font-bold', suiteNumber).should('be.visible');
+      });
+    });
+  });
+
+  it('seleciona uma suíte ocupada e abre modal de troca', () => {
+
+    fazerCheckinSuiteLivre();// Dando entrada em uma suíte para garantir que há uma ocupada
+  });
+
 });
