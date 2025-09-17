@@ -11,5 +11,8 @@
   "devDependencies": {
     "cypress": "^13.7.3",
     "prettier": "^3.6.2"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.2"
   }
 }
